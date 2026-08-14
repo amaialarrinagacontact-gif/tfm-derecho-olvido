@@ -1,0 +1,136 @@
+# Entrega 4 - Diseño del análisis y estrategia de modelado
+
+## 1. Problema que se busca resolver
+
+Actualmente, quien presenta o valora presentar una reclamación de derecho al olvido digital (artículo 17 RGPD) ante la AEPD no tiene forma de anticipar, más allá de la intuición o la experiencia personal, si esa reclamación tiene probabilidades razonables de prosperar. Esto tiene dos consecuencias prácticas, ya cuantificadas en la Entrega 2 a partir del Informe de Transparencia de Google: ciudadanos que desisten de ejercer un derecho que les asiste por falta de información sobre su viabilidad, y ciudadanos o abogados que inician procedimientos con pocas probabilidades de éxito, incurriendo en costes de tiempo innecesarios.
+
+- **Quién usará el resultado:** en primer lugar, ciudadanos que valoran presentar una reclamación y quieren una primera orientación antes de decidir si merece la pena iniciar el procedimiento; en segundo lugar, abogados que necesitan un análisis preliminar rápido de la viabilidad de un caso y de precedentes comparables, antes de invertir tiempo en un estudio jurídico completo.
+- **Para qué decisión:** decidir si presentar o no la reclamación, y en qué términos (por ejemplo, si conviene fundamentarla de una forma concreta a la vista de qué factores pesan más en casos similares).
+- **Qué resultado concreto debe producir el proyecto:** dado un caso descrito mediante un conjunto reducido de variables (tipo de solicitante, tipo de responsable, antigüedad de la información, tipo de contenido, etc.), el sistema debe devolver (a) una estimación orientativa de la categoría de resultado más probable (`estimada` / `desestimada` / `estimada_parcialmente`), (b) los factores que más influyen en esa estimación, y (c) un pequeño conjunto de precedentes reales similares que la contextualicen. El proyecto se considera útil si esta estimación supera de forma clara y medible a una referencia trivial (predecir siempre la clase mayoritaria), no si alcanza una precisión perfecta.
+
+Esta entrega no repite el análisis de la Entrega 2; se limita a precisar qué resultado concreto debe producir el análisis y el modelado a partir del dataset `gold_casos` ya definido en la Entrega 3.
+
+---
+
+## 2. Análisis de datos planteado y utilidad esperada
+
+El proyecto es fundamentalmente un problema de **clasificación** sobre un corpus pequeño y con clases desbalanceadas, por lo que el análisis previo al modelado se centra en entender la distribución de la variable objetivo y su relación con las variables de entrada, más que en análisis temporal o geográfico exhaustivo (aunque se incluye una revisión temporal ligera, dado que el corpus cubre un periodo con dos etapas regulatorias distintas, pre y post-RGPD).
+
+**Preguntas que se quieren responder con los datos:**
+
+- ¿Cómo se distribuye `resultado` en el corpus? ¿Hay un desbalance severo que condicione la métrica de evaluación y el tratamiento de clases?
+- ¿Qué variables de entrada muestran una relación aparente más fuerte con el resultado (por ejemplo, ¿las reclamaciones sobre personas privadas tienen más éxito que las de personas con proyección pública? ¿la antigüedad de la información se asocia con mayor tasa de estimación?)?
+- ¿Ha cambiado el criterio de resolución a lo largo del tiempo (comparando el periodo 2014-2018 con 2018-2025, es decir, antes y después de la aplicación plena del RGPD)?
+- ¿Existen combinaciones de variables con muy pocos casos (por ejemplo, `condena_penal_previa=1` y `tipo_solicitante=pública` a la vez) que puedan generar segmentos poco fiables para el modelo?
+- ¿Cuánta información falta por variable (`antiguedad_info_años`, `pais_solicitante`, etc.) y esa ausencia está distribuida de forma aleatoria o se concentra en algún tipo de caso?
+
+**Análisis previstos:**
+
+- **Descriptivo:** distribución de `resultado` (conteos y proporciones), distribución de cada variable de entrada categórica, estadísticos básicos de `antiguedad_info_años`, y mapa de valores faltantes por variable.
+- **Comparativo / relación variable–objetivo:** tablas de contingencia y proporción de `resultado` por categoría de `tipo_solicitante`, `tipo_responsable`, `tipo_contenido` y `condena_penal_previa`; comparación de `antiguedad_info_años` entre casos `estimada` y `desestimada` (por ejemplo, con boxplots).
+- **Temporal:** evolución de la proporción de `resultado` por `año_resolucion`, para comprobar si el criterio de la AEPD ha cambiado de forma relevante entre el periodo pre-RGPD (2014-2018) y post-RGPD (2018-2025); esta revisión también sirve para decidir si `año_resolucion` debe tratarse como variable numérica continua o si conviene una variable derivada de periodo (`pre_rgpd` / `post_rgpd`).
+- **Multivariante ligero:** matriz de correlación/asociación entre variables de entrada (para detectar redundancia antes de entrenar, por ejemplo entre `tipo_contenido` y `interes_historico`).
+
+**Hipótesis a comprobar:** que el `tipo_solicitante` (pública/privada) y la `antiguedad_info_años` son las variables con mayor poder discriminante sobre `resultado`, en línea con los criterios de ponderación descritos en la Entrega 2 (relevancia pública de la persona y antigüedad de la información como factores centrales de la doctrina Google Spain).
+
+**Qué se incorpora al MVP:** del análisis exploratorio se llevan a la interfaz Streamlit (a) el gráfico de importancia de variables (vía SHAP, sección 3), que reutiliza directamente el análisis de relación variable–objetivo hecho aquí, y (b) un indicador de cobertura del corpus por segmento (por ejemplo, "solo N casos similares en el corpus"), para que el usuario entienda cuándo la estimación se apoya en pocos precedentes y debe tomarse con más cautela.
+
+---
+
+## 3. Tipo de modelos que se van a plantear
+
+- **Tipo de tarea:** clasificación multiclase supervisada (3 clases: `estimada`, `desestimada`, `estimada_parcialmente`), tal como se fijó en la Entrega 3. No se plantea un problema de regresión, forecasting ni clustering como eje del proyecto; el módulo de recuperación de precedentes (RAG) no es un modelo que deba compararse en esta tabla, ya que no compite por la misma métrica — se evalúa aparte, de forma cualitativa (ver Entrega 3, sección 8).
+
+| Alternativa | Tipo | Por qué se plantea | Limitación principal |
+|---|---|---|---|
+| Baseline | Clase mayoritaria (`DummyClassifier` estrategia `most_frequent`) | Referencia mínima: si el modelo entrenado no supera esto en F1-macro, no aporta valor real | Ignora por completo las variables de entrada; es fácil de superar en accuracy si hay desbalance, por eso se usa F1-macro y no accuracy como criterio |
+| Modelo candidato 1 | Regresión logística multinomial (con one-hot encoding de categóricas) | Modelo interpretable y reproducible, coherente con un corpus pequeño (250-400 casos) donde modelos más complejos pueden sobreajustar; sus coeficientes ya dan una primera lectura de qué variables pesan más, antes incluso de aplicar SHAP | Asume relaciones lineales entre variables y log-odds del resultado; puede no capturar interacciones entre variables (p. ej. antigüedad × tipo de responsable) |
+| Modelo candidato 2 | Random Forest (y, si el tiempo lo permite, XGBoost como variante) | Captura relaciones no lineales e interacciones entre variables sin necesidad de especificarlas a mano; maneja bien variables categóricas y es razonablemente robusto con datasets pequeños si se controla la profundidad de los árboles | Mayor riesgo de sobreajuste con un corpus de 250-400 casos si no se regula (profundidad máxima, mínimo de muestras por hoja); menos directamente interpretable que la regresión logística, aunque se compensa con SHAP |
+
+La selección final no se hace solo por la métrica: si Random Forest/XGBoost mejora la regresión logística en F1-macro por un margen pequeño pero pierde estabilidad entre folds (ver sección 7) o resulta más difícil de explicar de forma consistente con SHAP, se preferirá el modelo más simple, en línea con el objetivo de que el sistema pueda explicar sus estimaciones y no solo producirlas.
+
+---
+
+## 4. Datos de entrada del análisis y los modelos
+
+| Entrada | Descripción | Granularidad / tipo | Uso en el análisis o modelo |
+|---|---|---|---|
+| `gold_casos.parquet` | Dataset final de resoluciones AEPD etiquetadas, procedente de la Entrega 3 | Una fila por resolución de la AEPD | Fuente principal de variables de entrada y de la variable objetivo |
+| `tipo_solicitante` | Persona pública o privada | Categórica | Feature directa |
+| `tipo_responsable` | Motor de búsqueda, hemeroteca, red social, registro público, otro | Categórica | Feature directa |
+| `antiguedad_info_años` | Años entre publicación y solicitud | Numérica (puede ser `NaN`) | Feature directa, con imputación explícita (ver más abajo) |
+| `tipo_contenido` | Noticia, imagen, dato judicial, dato registral, otro | Categórica | Feature directa |
+| `condena_penal_previa` | Condena penal firme relacionada | Binaria | Feature directa |
+| `año_resolucion` | Año de la resolución | Numérica | Feature directa; también variable de análisis temporal (sección 2) |
+| `persona_fallecida`, `interes_historico`, `pais_solicitante` | Variables "deseables" de la Entrega 2 | Categórica / binaria | Features secundarias, sujetas a revisión de cobertura antes de incluirlas en el modelo final |
+| `periodo_regulatorio` (derivada) | `pre_rgpd` (2014-2018) / `post_rgpd` (2018-2025), calculada a partir de `año_resolucion` | Categórica derivada | Feature candidata, en función de lo que muestre el análisis temporal |
+
+- **Clave/identificador principal:** `caso_id` (Entrega 3), no se usa como feature, solo para trazabilidad y para el enlace con la colección vectorial del RAG.
+- **Variable de referencia temporal:** `año_resolucion`. No existe una fecha exacta de "predicción" porque el modelo no se re-entrena de forma continua; cada versión del modelo se documenta con la fecha de corte del corpus usado para entrenarla.
+- **Variables que NO se utilizarán como entrada del modelo:**
+  - `texto_hechos` y `texto_fundamentos`: se reservan para el índice vectorial del RAG (Entrega 3), no se usan como feature tabular, para mantener el modelo interpretable y evitar mezclar dos tipos de representación (tabular vs. embeddings) en el mismo clasificador.
+  - `jurisdiccion`: en la fase actual es constante (`AEPD`, fuente única), por lo que no aporta poder discriminante y se excluye del modelo hasta que, en su caso, se amplíe a otra fuente.
+  - `pais_solicitante`: se revisará su cobertura real; si el porcentaje de valores faltantes es muy alto, se excluye del modelo por riesgo de introducir ruido, y se documenta como limitación.
+- **Disponibilidad real en el momento de uso:** todas las variables de entrada seleccionadas son datos que el propio usuario puede aportar sobre su caso hipotético en el momento de la consulta (tipo de solicitante, tipo de responsable, antigüedad de la información, tipo de contenido, existencia de condena previa). No se utiliza ninguna variable que solo estuviera disponible a toro pasado en la resolución (como el propio fallo, evidentemente, o el tiempo de resolución), lo que evita fuga de información (ver sección 8).
+- **Transformaciones necesarias:** one-hot encoding de categóricas para la regresión logística; codificación nativa o one-hot para Random Forest/XGBoost; imputación explícita de `antiguedad_info_años` con una categoría/indicador de "desconocido" en lugar de imputar un valor numérico inventado, para no introducir un sesgo silencioso.
+
+---
+
+## 5. Datos de salida y forma de consumo
+
+| Campo de salida | Descripción | Tipo | Uso posterior |
+|---|---|---|---|
+| `caso_id` (o `caso_temporal_id`) | Identificador del caso consultado (generado para cada consulta nueva del usuario) | string | Trazabilidad de la consulta, no se persiste con datos personales |
+| `resultado_predicho` | Clase con mayor probabilidad estimada (`estimada` / `desestimada` / `estimada_parcialmente`) | categoría | Mostrado como estimación principal en la interfaz |
+| `probabilidades` | Probabilidad estimada para cada una de las 3 clases | float (3 valores, suman 1) | Mostrado como rango orientativo, no como cifra única de "éxito garantizado" (ver Entrega 3) |
+| `factores_explicativos` | Top-N variables con mayor contribución SHAP a la predicción de ese caso concreto | lista (texto + peso) | Explicación mostrada junto a la predicción |
+| `precedentes_similares` | Hasta 5 casos del corpus más similares (vía RAG), con su resultado real | tabla (caso_id, resumen, resultado, año) | Contextualización de la predicción con jurisprudencia real |
+| `fecha_ejecucion` | Momento en que se genera la estimación | datetime | Control de qué versión del modelo/corpus generó el resultado |
+| `aviso_legal` | Texto fijo de descargo (herramienta orientativa, no dictamen jurídico) | texto | Se muestra siempre junto al resultado, según lo fijado en la Entrega 2 |
+
+- **Nivel de granularidad de la salida:** por consulta individual (un caso hipotético introducido por el usuario), no agregada.
+- **Formato previsto:** respuesta en tiempo real dentro de la interfaz Streamlit del MVP; internamente, el resultado de cada consulta puede registrarse en un fichero/tabla ligera (Parquet o CSV) solo con fines de depuración y evaluación del sistema en uso, sin datos identificativos del usuario.
+- **Cómo lo usa el usuario:** para decidir si presentar la reclamación, y para revisar qué factores concretos podrían reforzar o debilitar su caso antes de fundamentarlo formalmente.
+- **Información adicional necesaria:** el intervalo/probabilidad por clase (no solo la clase ganadora), el número de precedentes similares disponibles en el corpus para ese tipo de caso (para señalar baja cobertura cuando proceda) y el aviso legal fijo.
+
+---
+
+## 6. Estrategia para diseñar y seleccionar el modelo
+
+1. **Preparación del dataset de modelado:** partir de `gold_casos.parquet`, aplicar los criterios de exclusión de variables de la sección 4, y separar `resultado` como variable objetivo.
+2. **Baseline:** `DummyClassifier` con estrategia de clase mayoritaria, evaluado con la misma validación que los modelos candidatos (sección 7), para fijar el nivel mínimo que cualquier modelo debe superar.
+3. **Modelos candidatos:** regresión logística multinomial (candidato 1) y Random Forest, con XGBoost como variante adicional si el tiempo lo permite (candidato 2), tal como se justifica en la sección 3.
+4. **Preprocesamiento:**
+   - Nulos: indicador explícito de "desconocido" para `antiguedad_info_años` y demás variables con huecos, en lugar de imputación numérica silenciosa.
+   - Codificación: one-hot para categóricas nominales.
+   - Escalado: estandarización de `antiguedad_info_años` y `año_resolucion` solo para la regresión logística (no es necesario para los modelos basados en árboles).
+   - Selección de variables: se parte del conjunto definido en la sección 4 y se revisa si alguna variable con mucha proporción de nulos (p. ej. `pais_solicitante`) aporta señal real antes de mantenerla en el modelo final.
+5. **Criterios de comparación:** F1-macro como criterio principal (ver sección 7), estabilidad entre folds de la validación cruzada, interpretabilidad (capacidad de explicar cada predicción individual con SHAP de forma consistente) y coste computacional (todos los candidatos son ligeros de entrenar dado el tamaño del corpus, por lo que este criterio pesa poco en la decisión final).
+6. **Regla de decisión final:** se selecciona el modelo con mejor F1-macro medio en validación cruzada **siempre que** su F1-macro supere al del baseline por un margen relevante (no marginal) y su rendimiento sea razonablemente estable entre folds (desviación estándar del F1-macro entre folds no desproporcionada respecto a la media). Si dos modelos quedan en un margen muy próximo, se prioriza el más interpretable (regresión logística) sobre el más complejo, en línea con el objetivo del proyecto de ofrecer una herramienta explicable y no solo una métrica alta.
+
+---
+
+## 7. Estrategia de validación y evaluación
+
+| Elemento | Decisión prevista | Justificación |
+|---|---|---|
+| Separación de datos | Validación cruzada estratificada (k=5) sobre la totalidad del corpus, en lugar de un único split train/test | Con 250-400 casos, un único split test dejaría muy pocos casos por clase para evaluar con fiabilidad; la estratificación asegura que cada fold mantenga la proporción de clases del corpus completo |
+| Prevención de fuga de información | Cada `caso_id` aparece en un único fold; no se usan variables derivadas del propio fallo (como el tiempo de resolución) como entrada del clasificador (ver sección 4) | Evita que el modelo "vea" información que en el uso real no estaría disponible en el momento de la consulta |
+| Métrica principal | F1-macro | Da el mismo peso a las tres clases pese al desbalance esperado, evitando que un modelo que solo acierte bien la clase mayoritaria parezca artificialmente bueno |
+| Métricas secundarias | AUC-ROC one-vs-rest por clase, precisión y recall por clase, matriz de confusión agregada sobre los 5 folds | Permiten diagnosticar si el error se concentra en una clase concreta (p. ej. que el modelo confunda sistemáticamente `estimada_parcialmente` con `desestimada`) |
+| Comparación con baseline | Se reporta el F1-macro del baseline junto al de cada modelo candidato, con la misma validación cruzada | Es la referencia mínima de utilidad definida en la sección 3 |
+| Análisis de errores | Revisión manual de una muestra de falsos positivos/negativos por clase, y del F1-macro desagregado por `periodo_regulatorio` (pre/post RGPD) y por franjas de `antiguedad_info_años` | Permite detectar si el modelo funciona peor en algún segmento concreto (p. ej. casos muy antiguos, o el periodo pre-RGPD con menos casos) |
+| Criterio de aceptación | El modelo seleccionado debe superar al baseline en F1-macro en un margen claro (no solapado con la variabilidad entre folds) | Define cuándo el resultado es suficientemente útil para incluirse en el MVP |
+
+**Qué ocurre si ningún modelo alcanza el criterio de aceptación:** se documenta honestamente esta limitación en el MVP (no se fuerza a mostrar una predicción con apariencia de fiabilidad que no tiene) y el sistema pasa a apoyarse principalmente en el módulo de recuperación de precedentes similares (RAG) como fuente de valor, presentando casos análogos sin una predicción de clase asociada, hasta que el corpus crezca lo suficiente para reintentar el modelado supervisado.
+
+---
+
+## 8. Riesgos y alternativas
+
+- **¿La variable objetivo está disponible y representa realmente el fenómeno que se quiere predecir?** Sí: `resultado` se etiqueta directamente del fallo de la resolución, siguiendo el criterio cerrado de la Entrega 2, por lo que representa fielmente el desenlace real del caso. El riesgo no está en la disponibilidad, sino en la consistencia del etiquetado manual en casos límite, ya señalado como riesgo en la Entrega 3.
+- **¿Existe riesgo de data leakage?** El principal punto de atención es no usar variables que solo se conocen a posteriori (el propio fallo, el tiempo de resolución, o texto de los fundamentos que ya anticipe el sentido de la decisión) como si fueran datos de entrada disponibles en el momento de la consulta. Por eso se excluyen explícitamente en la sección 4 y se restringe la entrada a variables que el usuario puede aportar de su propio caso.
+- **¿El volumen, histórico y calidad de los datos son suficientes?** Con 250-400 casos es suficiente para un baseline y para una validación cruzada estratificada razonable, pero el margen de mejora sobre el baseline puede ser modesto; se reportará con honestidad, incluyendo la variabilidad entre folds, en lugar de presentar una única cifra optimista.
+- **¿Hay clases desbalanceadas, cambios temporales o segmentos con pocos datos?** Se espera desbalance entre las 3 clases (mitigado con F1-macro y, si es necesario, con `class_weight='balanced'`); se espera también menos casos en el periodo pre-RGPD (2014-2018) que en el post-RGPD, lo que puede hacer menos fiable el análisis por periodo si el segmento pre-RGPD queda muy pequeño — se documentará explícitamente si ese es el caso.
+- **¿Qué parte de la estrategia genera más incertidumbre?** Si el modelo mejora al baseline lo suficiente como para justificar su inclusión en el MVP con un corpus de solo 250-400 casos, especialmente en la clase `estimada_parcialmente`, que es previsiblemente la más heterogénea y difícil de predecir.
+- **¿Qué alternativa se aplicaría si ningún modelo supera el baseline con rigor?** Reducir la ambición del componente predictivo a un score o regla explicable basada en pocas variables clave (por ejemplo, combinación de `tipo_solicitante` y `antiguedad_info_años`, que el análisis exploratorio de la sección 2 debería confirmar o descartar como las más discriminantes) en lugar de un modelo de caja algo más compleja, priorizando en todo caso mantener el componente de recuperación de precedentes (RAG) como fuente de valor del MVP mientras el corpus etiquetado crece lo suficiente para reintentar un modelo supervisado más robusto.
