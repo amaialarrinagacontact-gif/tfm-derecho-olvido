@@ -20,13 +20,15 @@ El sistema propuesto aborda directamente esta laguna: proporcionar a ciudadanos,
 
 El proyecto propone desarrollar un sistema de análisis predictivo basado en un corpus de resoluciones y sentencias públicas sobre derecho al olvido, estructurado en tres módulos funcionales complementarios.
 
-El primer módulo es un **clasificador supervisado** que predice el resultado probable de una reclamación (éxito, denegación o éxito parcial) a partir de un conjunto de variables estructuradas extraídas de cada caso: la naturaleza del solicitante, el tipo de responsable del tratamiento, la antigüedad de la información, el tipo de contenido reclamado, la existencia de condena penal previa, la jurisdicción del órgano resolvente y el año de la resolución, entre otras. Se evaluarán y compararán varios algoritmos de clasificación —regresión logística como baseline, Random Forest y XGBoost— seleccionando el que ofrezca mejor equilibrio entre rendimiento predictivo y explicabilidad. La explicabilidad de las predicciones se implementará mediante SHAP (SHapley Additive exPlanations), que permite cuantificar la contribución de cada variable a la predicción final y traducirla al lenguaje de los criterios jurídicos de ponderación que los tribunales aplican en la práctica.
+El primer módulo es un **clasificador supervisado** que estima la probabilidad relativa de cada resultado posible de una reclamación (éxito, denegación o éxito parcial) a partir de un conjunto de variables estructuradas extraídas de cada caso: la naturaleza del solicitante, el tipo de responsable del tratamiento, la antigüedad de la información, el tipo de contenido reclamado, la existencia de condena penal previa, la jurisdicción del órgano resolvente y el año de la resolución, entre otras. Se evaluarán y compararán varios algoritmos de clasificación —regresión logística como baseline, Random Forest y XGBoost— seleccionando el que ofrezca mejor equilibrio entre rendimiento predictivo y explicabilidad. La explicabilidad de las predicciones se implementará mediante SHAP (SHapley Additive exPlanations), que permite cuantificar la contribución de cada variable a la predicción final y traducirla al lenguaje de los criterios jurídicos de ponderación que los tribunales aplican en la práctica.
+
+Es importante precisar el estatus de esta salida desde el diseño del sistema: la cifra que produce el modelo es una **estimación estadística orientativa**, calculada por semejanza con casos históricos similares, y en ningún caso equivale a un dictamen jurídico ni sustituye el análisis individualizado que exige la ponderación de derechos fundamentales en cada caso concreto. Esta distinción no es solo una cuestión de comunicación: condiciona el propio diseño del módulo, que se acompañará siempre de (a) un intervalo o nivel de confianza asociado a la estimación en función del número de casos similares disponibles, (b) la explicación SHAP de qué factores la sustentan, y (c) un texto de descargo visible en la interfaz que indique que se trata de una herramienta de apoyo informativo, no de asesoramiento legal.
 
 El segundo módulo es un **estimador de tiempo de resolución**, implementado como modelo de regresión sobre las mismas variables estructuradas, con transformación logarítmica de la variable objetivo para corregir la asimetría típica de las distribuciones de tiempos administrativos y judiciales. Este módulo permite ofrecer al usuario una estimación del tiempo previsible entre la interposición de la reclamación y su resolución, información de alto valor práctico para la planificación jurídica.
 
 El tercer módulo es un **sistema de recuperación de jurisprudencia análoga** basado en similitud semántica. Mediante embeddings de texto generados con modelos de lenguaje multilingüe (multilingual-e5-large o similar) y búsqueda eficiente de vecinos próximos con FAISS (Facebook AI Similarity Search), el sistema identifica los casos del corpus más similares al caso de entrada y los presenta con sus metadatos y resultado. Este componente permite contextualizar la predicción con precedentes reales y proporciona al usuario —especialmente si es abogado— material jurisprudencial relevante de forma inmediata.
 
-Los tres módulos se alimentan de un corpus construido a partir de fuentes públicas institucionales (AEPD, TJUE, TEDH), procesado mediante técnicas de NLP para la extracción de variables estructuradas a partir de texto no estructurado, y enriquecido con etiquetado manual supervisado para las variables de resultado y tiempo.
+Los tres módulos se alimentan de un corpus construido, en la fase de MVP, a partir de **una fuente principal (AEPD) y una fuente secundaria (GDPRhub)**, procesado mediante técnicas de NLP para la extracción de variables estructuradas a partir de texto no estructurado, y enriquecido con etiquetado manual supervisado para las variables de resultado y tiempo, siguiendo el criterio de etiquetado detallado en la sección 2.5. Esta acotación deliberada de fuentes responde a una decisión de diseño: demostrar el pipeline completo (extracción → limpieza → etiquetado → modelado) sobre un corpus manejable antes de plantear cualquier ampliación a fuentes adicionales (ver sección 3.3).
 
 ---
 
@@ -36,7 +38,7 @@ El producto mínimo viable consistirá en tres componentes entregables y funcion
 
 El primero es un **notebook de análisis exploratorio y modelado** (EDA + modelling) que documente todo el pipeline técnico: carga y limpieza del dataset, análisis descriptivo de las variables (distribuciones, correlaciones, outliers), construcción de las features, entrenamiento y comparación de modelos de clasificación, evaluación mediante métricas estándar (AUC-ROC, F1-score, precisión, recall) y visualización de la importancia de variables con SHAP. El notebook estará disponible en el repositorio de GitHub y será completamente reproducible.
 
-El segundo es una **interfaz interactiva sencilla** desarrollada con Streamlit que permita al usuario introducir las características de un caso hipotético mediante un formulario y obtener en tiempo real: (a) la probabilidad estimada de éxito de la reclamación, (b) los factores jurídicos que más influyen en esa estimación con su peso relativo, y (c) una lista de los cinco casos más similares del corpus con sus metadatos y resultado. Esta interfaz tiene como objetivo demostrar la utilidad práctica del sistema más allá del ámbito técnico.
+El segundo es una **interfaz interactiva sencilla** desarrollada con Streamlit que permita al usuario introducir las características de un caso hipotético mediante un formulario y obtener en tiempo real: (a) una estimación orientativa de viabilidad de la reclamación, presentada como rango probabilístico y no como cifra única de "éxito garantizado", (b) los factores jurídicos que más influyen en esa estimación con su peso relativo, y (c) una lista de los cinco casos más similares del corpus con sus metadatos y resultado. La interfaz incluirá de forma permanente y visible un aviso indicando que se trata de una herramienta de apoyo informativo basada en jurisprudencia histórica, sin valor de asesoramiento jurídico ni de predicción vinculante. Esta interfaz tiene como objetivo demostrar la utilidad práctica del sistema más allá del ámbito técnico, sin generar una apariencia de dictamen automatizado.
 
 El tercer componente es la **documentación del dataset** construido, incluyendo la descripción de las fuentes utilizadas, el proceso de extracción y etiquetado, las limitaciones conocidas y las decisiones metodológicas tomadas. Esta documentación sigue el formato Datasheet for Datasets (Gebru et al., 2021) y garantiza la trazabilidad y reproducibilidad del trabajo.
 
@@ -92,13 +94,13 @@ El punto de partida natural del corpus es **mayo de 2014**, fecha de la sentenci
 
 ### Volumen aproximado
 
-Se estima un corpus inicial de entre **400 y 800 resoluciones etiquetadas**, distribuidas entre las distintas fuentes. Este volumen es modesto pero coherente con las características del dominio Legal AI, donde los datos etiquetados son escasos por naturaleza y el coste del etiquetado manual es elevado. Con este volumen es posible:
+Para el MVP, acotado a AEPD (fuente principal) y GDPRhub (fuente secundaria), se estima un corpus inicial de entre **250 y 400 resoluciones etiquetadas**. Este volumen es deliberadamente modesto: prioriza cerrar un pipeline completo y fiable sobre dos fuentes bien conocidas antes que perseguir un volumen mayor a costa de la calidad del etiquetado. Es coherente con las características del dominio Legal AI, donde los datos etiquetados son escasos por naturaleza y el coste del etiquetado manual es elevado. Con este volumen es posible:
 
 - Entrenar y evaluar modelos de clasificación supervisada con variables estructuradas mediante validación cruzada estratificada
 - Construir un índice FAISS funcional para recuperación semántica
 - Realizar análisis exploratorio estadísticamente significativo
 
-Si el volumen resultara insuficiente para el módulo de clasificación, se considerará ampliar el corpus a resoluciones generales de protección de datos (no exclusivamente derecho al olvido) para aumentar el tamaño del dataset, manteniendo el derecho al olvido como subconjunto de análisis prioritario.
+El criterio de ampliación no es "añadir más fuentes en paralelo", sino secuencial: solo si el pipeline sobre AEPD + GDPRhub queda validado (extracción, etiquetado y modelado funcionando de extremo a extremo) se evaluará incorporar una fuente adicional del listado de la sección 3.3, o bien ampliar el scope temático a resoluciones generales de protección de datos (artículos 15–22 RGPD), manteniendo el derecho al olvido (artículo 17) como subconjunto de análisis prioritario.
 
 ---
 
@@ -121,9 +123,30 @@ Si el volumen resultara insuficiente para el módulo de clasificación, se consi
 
 ---
 
+### Criterio de etiquetado
+
+Uno de los riesgos señalados en la revisión de esta propuesta es que el etiquetado manual se realice con criterios ambiguos o inconsistentes entre resoluciones. Para evitarlo, se fija de antemano una regla operativa por variable, de modo que el etiquetado no dependa de la interpretación puntual de quien etiqueta cada caso:
+
+| Variable | Regla de etiquetado |
+|---|---|
+| `resultado` | `estimada`: la resolución ordena la supresión, bloqueo o desindexación total de lo solicitado. `desestimada`: la resolución deniega íntegramente la solicitud. `estimada_parcialmente`: la resolución concede la supresión respecto de parte del contenido o para determinados canales (p. ej. desindexación pero no eliminación en origen), o impone condiciones. Se etiqueta siempre a partir del **fallo o parte dispositiva** de la resolución, nunca a partir de los fundamentos jurídicos previos, que pueden anticipar un sentido distinto al fallo final. |
+| `tipo_solicitante` | `pública`: la resolución identifica al solicitante como cargo electo, alto cargo, figura con proyección pública reconocida en el propio texto, o el fundamento jurídico discute expresamente su relevancia pública. `privada`: en cualquier otro caso, incluida la ausencia de mención expresa a proyección pública. Ante la duda, se etiqueta como `privada` (opción por defecto, más conservadora). |
+| `tipo_responsable` | Se etiqueta según quién sea el responsable del tratamiento demandado en el propio expediente (motor de búsqueda, medio de comunicación/hemeroteca, red social, registro público, otro), nunca según el origen de la información. |
+| `antiguedad_info_años` | Diferencia en años completos entre la fecha de publicación original del contenido (si consta en la resolución) y la fecha de la solicitud inicial ante el responsable. Si la resolución no permite reconstruir la fecha de publicación con precisión de año, el registro se marca como dato faltante (`NaN`), no se estima ni se imputa a mano. |
+| `condena_penal_previa` | `1` únicamente si la resolución hace referencia expresa a una condena penal firme relacionada con los hechos objeto de la reclamación. Una mera referencia a un procedimiento penal archivado, absolución o investigación en curso se etiqueta como `0`. |
+| `interes_historico` | `1` solo si el responsable del tratamiento invoca expresamente interés histórico, científico o estadístico como fundamento para no suprimir el dato; no se infiere del tipo de contenido. |
+
+Este criterio se documentará como una guía de etiquetado (*labeling guidelines*) de una página, se aplicará de forma consistente durante todo el proceso y se incluirá como anexo en el Datasheet for Datasets del entregable final, de modo que cualquier decisión de etiquetado sea trazable y reproducible.
+
+---
+
 ## 3. Fuentes de datos previstas
 
-### Fuente 1 — AEPD: Resoluciones en materia de derecho de supresión (fuente principal)
+### 3.1 Alcance del MVP: una fuente principal y una fuente secundaria
+
+Siguiendo la recomendación de acotar el proyecto para garantizar que el pipeline completo (extracción, limpieza, etiquetado y modelado) quede bien demostrado antes de ampliar el corpus, el MVP se apoya en **dos fuentes únicamente**: AEPD como fuente principal y GDPRhub como fuente secundaria de contraste y refuerzo. Las fuentes adicionales inicialmente consideradas (CURIA, HUDOC, EUR-Lex, Google Transparency Report, CENDOJ) se documentan en la sección 3.3 como posible ampliación futura, fuera del alcance del MVP.
+
+#### 3.1.1 — AEPD: Resoluciones en materia de derecho de supresión (fuente principal del MVP)
 
 - **URL:** [https://www.aepd.es/resoluciones](https://www.aepd.es/resoluciones)
 - **Descripción:** La Agencia Española de Protección de Datos publica la totalidad de sus resoluciones de forma pública y gratuita. Las resoluciones sobre derecho de supresión (artículo 17 RGPD) y derecho al olvido son accesibles mediante el buscador por materia.
@@ -140,7 +163,7 @@ Si el volumen resultara insuficiente para el módulo de clasificación, se consi
 
 ---
 
-### Fuente 2 — GDPRhub: Repositorio europeo de resoluciones de protección de datos
+#### 3.1.2 — GDPRhub: Repositorio europeo de resoluciones de protección de datos (fuente secundaria del MVP)
 
 - **URL:** [https://gdprhub.eu/index.php?title=Welcome_to_GDPRhub](https://gdprhub.eu/index.php?title=Welcome_to_GDPRhub)
 - **Descripción:** GDPRhub es un repositorio colaborativo mantenido por noyb (organización europea de privacidad) que recoge y sistematiza resoluciones de autoridades de protección de datos de todos los Estados miembros de la UE. Incluye metadatos ya estructurados: autoridad, fecha, artículo invocado, resultado y resumen en inglés.
@@ -157,7 +180,15 @@ Si el volumen resultara insuficiente para el módulo de clasificación, se consi
 
 ---
 
-### Fuente 3 — CURIA: Sentencias del Tribunal de Justicia de la UE
+### 3.2 Por qué AEPD + GDPRhub son suficientes para el MVP
+
+La combinación de estas dos fuentes cubre las dos necesidades básicas del proyecto sin multiplicar el trabajo de extracción y etiquetado: AEPD aporta volumen y profundidad sobre el caso español, con texto completo para el módulo semántico; GDPRhub aporta metadatos ya parcialmente estructurados (autoridad, artículo, resultado) que sirven de referencia cruzada para validar el criterio de etiquetado aplicado a AEPD y, si hiciera falta, ampliar volumen con resoluciones de otras autoridades europeas sin salir de una única fuente adicional. Con estas dos fuentes es posible completar y demostrar el pipeline íntegro —scraping/extracción, limpieza, etiquetado, modelado y evaluación— antes de invertir esfuerzo en fuentes con formatos, idiomas o volúmenes distintos.
+
+### 3.3 Fuentes adicionales consideradas (ampliación futura, fuera del alcance del MVP)
+
+Las siguientes fuentes se identificaron durante la fase de exploración y siguen siendo relevantes para el dominio, pero **no forman parte del MVP**. Se documentan aquí como mapa de ampliación posible una vez validado el pipeline sobre AEPD + GDPRhub, priorizando siempre una fuente adicional a la vez y no varias en paralelo, para no repetir el problema de dispersión que motivó esta acotación.
+
+#### 3.3.1 — CURIA: Sentencias del Tribunal de Justicia de la UE
 
 - **URL:** [https://curia.europa.eu/juris/recherche.jsf](https://curia.europa.eu/juris/recherche.jsf)
 - **Descripción:** Portal oficial del TJUE con todas sus sentencias en las lenguas oficiales de la UE. Permite filtrar por materia, fecha y número de asunto. Las sentencias sobre derecho al olvido más relevantes incluyen: Google Spain (C-131/12, 2014), Google LLC c. CNIL (C-507/17, 2019) y casos relacionados con el artículo 17 RGPD.
@@ -172,7 +203,7 @@ Si el volumen resultara insuficiente para el módulo de clasificación, se consi
 
 ---
 
-### Fuente 4 — HUDOC: Base de datos del Tribunal Europeo de Derechos Humanos
+#### 3.3.2 — HUDOC: Base de datos del Tribunal Europeo de Derechos Humanos
 
 - **URL:** [https://hudoc.echr.coe.int](https://hudoc.echr.coe.int)
 - **Descripción:** Base de datos oficial del TEDH con todas sus sentencias y decisiones. Relevante para el proyecto por la jurisprudencia sobre derecho al olvido en relación con el artículo 8 del CEDH (derecho a la vida privada) y hemerotecas digitales. Casos relevantes: M.L. y W.W. c. Alemania (2018), Hurbain c. Bélgica (2021).
@@ -187,7 +218,7 @@ Si el volumen resultara insuficiente para el módulo de clasificación, se consi
 
 ---
 
-### Fuente 5 — EUR-Lex: Legislación y jurisprudencia europea
+#### 3.3.3 — EUR-Lex: Legislación y jurisprudencia europea
 
 - **URL:** [https://eur-lex.europa.eu](https://eur-lex.europa.eu)
 - **Descripción:** Portal oficial de legislación de la UE. Relevante para el proyecto como fuente de los textos normativos completos (RGPD, Directiva 95/46/CE, Reglamento de IA) que se indexarán en el módulo RAG para consultas en lenguaje natural sobre legislación aplicable.
@@ -198,7 +229,7 @@ Si el volumen resultara insuficiente para el módulo de clasificación, se consi
 
 ---
 
-### Fuente 6 — Google Transparency Report
+#### 3.3.4 — Google Transparency Report
 
 - **URL:** [https://transparencyreport.google.com/eu-privacy/overview](https://transparencyreport.google.com/eu-privacy/overview)
 - **Descripción:** Informe público de Google con estadísticas agregadas sobre solicitudes de desindexación recibidas en el marco del derecho al olvido: número de solicitudes por país, porcentaje estimado/desestimado, categorías de contenido.
@@ -209,7 +240,7 @@ Si el volumen resultara insuficiente para el módulo de clasificación, se consi
 
 ---
 
-### Fuente 7 — Tribunal Constitucional Español y CENDOJ
+#### 3.3.5 — Tribunal Constitucional Español y CENDOJ
 
 - **URL TC:** [https://hj.tribunalconstitucional.es](https://hj.tribunalconstitucional.es)
 - **URL CENDOJ:** [https://www.poderjudicial.es/search/indexAN.jsp](https://www.poderjudicial.es/search/indexAN.jsp)
@@ -244,28 +275,28 @@ No obstante, se aplican las siguientes cautelas específicas:
 
 **¿Es viable obtener los datos necesarios?**
 
-Sí, con esfuerzo de recopilación y etiquetado controlado. Las fuentes principales (AEPD, CURIA, HUDOC, GDPRhub) son públicas, accesibles sin restricciones relevantes y mantienen histórico desde 2014. La principal dificultad no es el acceso a los documentos sino su estructuración: los textos están en formato PDF y requieren extracción de texto y etiquetado manual de variables clave. GDPRhub actúa como fuente parcialmente pre-estructurada que reduce significativamente el trabajo de etiquetado para las resoluciones que cubre. La combinación de fuentes prevista es suficiente para construir un corpus inicial funcional.
+Sí, con esfuerzo de recopilación y etiquetado controlado, y con un alcance acotado a dos fuentes en el MVP. AEPD (principal) y GDPRhub (secundaria) son públicas, accesibles sin restricciones relevantes y mantienen histórico desde 2014. La principal dificultad no es el acceso a los documentos sino su estructuración: los textos de AEPD están en formato PDF y requieren extracción de texto y etiquetado manual de variables clave siguiendo el criterio fijado en la sección 2.5. GDPRhub actúa como fuente parcialmente pre-estructurada que reduce el trabajo de etiquetado y sirve además de contraste para validar la consistencia del criterio aplicado sobre AEPD. Esta combinación de dos fuentes es deliberadamente suficiente —y no un subconjunto provisional— para construir y demostrar un corpus inicial funcional; el resto de fuentes identificadas (sección 3.3) queda fuera del MVP y se plantea únicamente como ampliación posterior.
 
 **¿Tiene suficiente calidad, granularidad y profundidad histórica?**
 
-La granularidad es adecuada para el objetivo: una resolución por registro es el nivel natural de análisis en Legal AI. La profundidad histórica desde 2014 (aprox. 10 años) es suficiente para capturar la evolución jurisprudencial en dos etapas regulatorias diferenciadas (pre y post-RGPD). La calidad del dataset dependerá del rigor del proceso de etiquetado, que se documentará explícitamente siguiendo el formato Datasheet for Datasets (Gebru et al., 2021).
+La granularidad es adecuada para el objetivo: una resolución por registro es el nivel natural de análisis en Legal AI. La profundidad histórica desde 2014 (aprox. 10 años) es suficiente para capturar la evolución jurisprudencial en dos etapas regulatorias diferenciadas (pre y post-RGPD). La calidad del dataset dependerá sobre todo del rigor del proceso de etiquetado: por eso se ha fijado de antemano un criterio explícito por variable (sección 2.5), que se documentará como Datasheet for Datasets (Gebru et al., 2021) junto con las decisiones tomadas y los casos límite encontrados durante el etiquetado.
 
 **¿Es realista desarrollar el proyecto durante el curso?**
 
-Sí, con un alcance bien delimitado y priorización clara. El MVP no requiere un corpus masivo ni un sistema de producción: con 400–600 resoluciones etiquetadas es posible construir un clasificador funcional evaluable con métricas estándar y un sistema de recuperación semántica operativo. La fase más costosa en tiempo es la recopilación y etiquetado inicial del dataset; el modelado y la interfaz son técnicamente más directos dado el stack de herramientas disponibles (scikit-learn, XGBoost, sentence-transformers, FAISS, Streamlit).
+Sí, con un alcance bien delimitado y priorización clara: acotar el MVP a AEPD + GDPRhub es precisamente lo que hace el calendario realista. Con 250–400 resoluciones etiquetadas es posible construir un clasificador funcional evaluable con métricas estándar y un sistema de recuperación semántica operativo. La fase más costosa en tiempo es la recopilación y etiquetado inicial del dataset; el modelado y la interfaz son técnicamente más directos dado el stack de herramientas disponibles (scikit-learn, XGBoost, sentence-transformers, FAISS, Streamlit). Solo si el pipeline queda demostrado con holgura de tiempo se abordará la ampliación a una fuente adicional (sección 3.3).
 
 **¿Qué parte del proyecto es más arriesgada?**
 
-La construcción del dataset es el cuello de botella principal. Dos riesgos concretos: (1) que el volumen de resoluciones accesibles con variables completas sea inferior al estimado, lo que limitaría la robustez estadística del clasificador; (2) que el proceso de etiquetado manual consuma más tiempo del previsto, retrasando la fase de modelado. Ambos riesgos están mitigados por la existencia de GDPRhub como fuente alternativa con datos pre-estructurados.
+La construcción del dataset es el cuello de botella principal. Dos riesgos concretos: (1) que el volumen de resoluciones accesibles con variables completas sea inferior al estimado, lo que limitaría la robustez estadística del clasificador; (2) que el proceso de etiquetado manual consuma más tiempo del previsto, retrasando la fase de modelado. Ambos riesgos se mitigan manteniendo el corpus acotado a dos fuentes conocidas y aplicando desde el inicio el criterio de etiquetado cerrado de la sección 2.5, en lugar de decidir caso a caso.
 
 **¿Qué alternativa existe si la fuente principal falla?**
 
-Si la AEPD limitara el acceso a sus resoluciones o el volumen específico de casos de derecho al olvido resultara insuficiente, se activaría el **plan alternativo** en dos niveles:
+Si la AEPD limitara el acceso a sus resoluciones o el volumen específico de casos de derecho al olvido resultara insuficiente, se activaría el **plan alternativo**, también acotado a no más de una fuente a la vez:
 
-- *Nivel 1:* Usar GDPRhub como fuente primaria en lugar de complementaria, ampliando el corpus a resoluciones de múltiples autoridades europeas (no solo española) sobre el artículo 17 RGPD.
-- *Nivel 2:* Ampliar el scope temático a resoluciones generales de protección de datos (artículos 15–22 RGPD) para aumentar el volumen del dataset, manteniendo el derecho al olvido (artículo 17) como subconjunto de análisis principal y variable de filtrado en los experimentos.
+- *Nivel 1:* Usar GDPRhub como fuente primaria en lugar de secundaria, ampliando el corpus a resoluciones de múltiples autoridades europeas (no solo española) sobre el artículo 17 RGPD, sin incorporar todavía ninguna otra fuente.
+- *Nivel 2:* Si el volumen sigue siendo insuficiente, ampliar el scope temático a resoluciones generales de protección de datos (artículos 15–22 RGPD) dentro de las mismas dos fuentes, para aumentar el volumen del dataset, manteniendo el derecho al olvido (artículo 17) como subconjunto de análisis principal y variable de filtrado en los experimentos.
 
-En ningún escenario se contempla el uso de datos que requieran permisos especiales, pagos o accesos restringidos, lo que garantiza la viabilidad del proyecto independientemente del escenario de datos que finalmente se materialice.
+En ningún escenario se contempla el uso de datos que requieran permisos especiales, pagos o accesos restringidos, ni la incorporación simultánea de varias fuentes nuevas, lo que garantiza la viabilidad del proyecto independientemente del escenario de datos que finalmente se materialice.
 
 ---
 
