@@ -4,7 +4,7 @@
 
 Traducir a una interfaz real el sistema definido en las entregas anteriores: el usuario describe un caso hipotético de derecho al olvido digital mediante un conjunto reducido de variables estructuradas (Entrega 4) y la aplicación devuelve una estimación orientativa de resultado, los factores que más pesan en esa estimación y un pequeño conjunto de precedentes reales similares recuperados por el módulo RAG (Entrega 3).
 
-**Prototipo funcional:** [https://lovable.dev/preview/ZsEwTsBYrZG3UdnwvNK14X9ZbwccZ0YU](https://lovable.dev/preview/ZsEwTsBYrZG3UdnwvNK14X9ZbwccZ0YU)
+**Prototipo funcional:** https://lovable.dev/preview/ZsEwTsBYrZG3UdnwvNK14X9ZbwccZ0YU
 
 > Nota: el frontal se ha generado con Lovable a partir del diseño de interfaz ya especificado en la Entrega de diseño (formulario → estimación con probabilidades → precedentes). Antes de entregarlo, conviene revisar el prototipo generado contra los criterios de la sección 3 de este documento, porque las herramientas de generación de UI con IA a veces añaden por defecto elementos (iconografía genérica, colores muy saturados, textos de tono "producto SaaS") que no encajan con el tono jurídico serio que exige este proyecto.
 
