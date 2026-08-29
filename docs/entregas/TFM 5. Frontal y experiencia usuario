@@ -1,0 +1,52 @@
+# TFM5. Frontal y experiencia de usuario
+
+## 1. Objetivo de esta entrega
+
+Traducir a una interfaz real el sistema definido en las entregas anteriores: el usuario describe un caso hipotético de derecho al olvido digital mediante un conjunto reducido de variables estructuradas (Entrega 4) y la aplicación devuelve una estimación orientativa de resultado, los factores que más pesan en esa estimación y un pequeño conjunto de precedentes reales similares recuperados por el módulo RAG (Entrega 3).
+
+**Prototipo funcional:** [https://lovable.dev/preview/ZsEwTsBYrZG3UdnwvNK14X9ZbwccZ0YU](https://lovable.dev/preview/ZsEwTsBYrZG3UdnwvNK14X9ZbwccZ0YU)
+
+> Nota: el frontal se ha generado con Lovable a partir del diseño de interfaz ya especificado en la Entrega de diseño (formulario → estimación con probabilidades → precedentes). Antes de entregarlo, conviene revisar el prototipo generado contra los criterios de la sección 3 de este documento, porque las herramientas de generación de UI con IA a veces añaden por defecto elementos (iconografía genérica, colores muy saturados, textos de tono "producto SaaS") que no encajan con el tono jurídico serio que exige este proyecto.
+
+---
+
+## 2. De dónde viene el diseño
+
+El frontal no parte de cero: reutiliza directamente las variables de entrada y salida ya cerradas en la Entrega 4 (secciones 4 y 5) y la estructura de tres bloques ya especificada en el diseño de interfaz previo:
+
+1. **Describe tu caso** — formulario con las variables de entrada del clasificador (tipo de solicitante, tipo de responsable del tratamiento, antigüedad de la información, tipo de contenido, condena penal previa, etc.).
+2. **Estimación orientativa** — resultado del modelo: clase más probable, probabilidades de las tres clases, factores explicativos (SHAP) y aviso legal fijo.
+3. **Precedentes similares** — hasta 5 resoluciones reales recuperadas por el módulo RAG, con su resultado real, para contextualizar la predicción con jurisprudencia citable.
+
+No se introduce en el frontal ningún campo ni variable que no estuviera ya definida en las entregas de datos y modelado; el frontal es una capa de presentación, no una fuente nueva de decisiones de producto.
+
+---
+
+## 3. Criterios de experiencia de usuario que debe cumplir el prototipo
+
+Estos son los criterios con los que hay que contrastar lo que ha generado Lovable antes de darlo por bueno:
+
+| Criterio | Por qué importa | Qué revisar en el prototipo |
+|---|---|---|
+| El resultado se muestra como probabilidades de 3 clases, no como una única cifra de "éxito" | Evita el efecto de dictamen automatizado señalado en la Entrega 2 | ¿Se ven las tres barras (estimada / estimada parcialmente / desestimada) o solo un porcentaje destacado? |
+| Aviso legal siempre visible, no colapsable ni en letra diminuta | Es una herramienta orientativa, no asesoramiento jurídico | ¿El aviso está en un bloque propio y legible, o escondido al pie de página? |
+| Indicador de cobertura del corpus | El usuario debe saber si la estimación se apoya en pocos precedentes | ¿Aparece el número de casos similares encontrados? |
+| Tono sobrio, sin iconografía genérica de IA (cerebros, chispas, robots) | El dominio es jurídico, no un producto "growth" | Revisar iconos y copys generados por defecto |
+| Formulario limitado a variables que el usuario puede aportar de su propio caso | Coherencia con la corrección de leakage aplicada en la Entrega 4 (nunca pedir año/fecha de resolución) | Confirmar que no se ha colado ningún campo de fecha de resolución o similar |
+| Precedentes con su resultado real visible | Permite comparar la predicción contra jurisprudencia citable | ¿Cada precedente muestra su resultado con el mismo código de color que la predicción principal? |
+
+---
+
+## 4. Flujo de usuario implementado
+
+1. El usuario rellena el formulario con los datos de su caso (los campos opcionales pueden dejarse en blanco).
+2. Pulsa el botón de acción principal para obtener la estimación.
+3. La pantalla muestra la predicción, las probabilidades por clase y los factores explicativos.
+4. En paralelo, se listan los precedentes similares recuperados del corpus.
+5. El usuario puede modificar una variable y repetir la consulta para explorar cómo cambia la estimación.
+
+---
+
+## 5. Qué queda fuera de esta entrega
+
+Siguiendo la misma lógica de acotación de alcance que en las entregas anteriores, no forman parte de este frontal: gestión de múltiples casos o colas de trabajo, histórico de consultas persistente, exportación de informes, ni ningún dashboard de métricas agregadas — el MVP resuelve consultas puntuales de un usuario, no gestiona un flujo operativo.
