@@ -1,0 +1,73 @@
+# Resoluciones de la AEPD sobre derecho al olvido digital localizadas en búsquedas web.
+# Una por línea. Las líneas que empiezan por # se ignoran.
+#
+# ===== CONFIRMADAS: derecho al olvido en internet =====
+# --- Etapa pre-RGPD (LOPD, "derecho de cancelación") ---
+TD/00072/2015
+# Google. Estimada por la AEPD; confirmada por la Audiencia Nacional (SAN 2433/2017)
+TD/00700/2016
+# Google
+TD/02177/2016
+# Google, portales de quejas. Estimada. Origen de la STC 89/2022 (Pleno)
+TD/02364/2016
+# Google. Estimada; anulada después por la Audiencia Nacional
+TD/00236/2017
+TD/00271/2017
+TD/00319/2017
+TD/00504/2017
+TD/00894/2017
+TD/01372/2017
+# (todas las anteriores de 2017: frente a Google)
+TD/01833/2017
+# Bing (buscador distinto de Google): útil para variedad de responsable
+TD/02351/2017
+# Google. Desestimada
+TD/01226/2018
+TD/01229/2018
+# Google
+# --- Etapa RGPD ---
+TD/00027/2019
+# Microsoft (Bing)
+TD/00284/2019
+# Google. Magistrado (persona con proyección pública). Desestimada
+TD/00006/2020
+# Google. Noticia; Google alegó relevancia pública
+TD/00016/2020
+# YouTube (vídeos). Desestimada
+TD/00071/2020
+# Google, nueve URLs. Desestimada
+TD/00206/2020
+# Google + enlace al BOE (opositor). Desestimada
+TD/00272/2020
+# Google, cuatro URLs
+TD/00277/2020
+# Google, fotos publicadas en un grupo de Facebook. Desestimada
+TD/00133/2021
+# Google. Desestimada en cuanto al derecho al olvido
+TD/00173/2021
+# BOE + Google (registro público)
+TD/00247/2021
+# Google
+#
+# ===== PROBABLES: aparecen en listados de supresión, tema sin confirmar =====
+# (el paso 1 descarta solo las que no traten de internet)
+TD/01289/2015
+# BOE, indulto
+TD/01468/2017
+TD/01488/2017
+TD/01693/2017
+TD/01209/2018
+TD/01223/2018
+TD/00022/2019
+TD/00024/2019
+TD/00026/2019
+TD/00033/2019
+#
+# ===== NO BAJAR: no son derecho al olvido digital =====
+# TD/00264/2019  (derecho de acceso frente a Telefónica: comprobado)
+# E/01278/2018   (archivo de actuaciones, cuenta de cliente: comprobado)
+# TD/00161/2020  (empresa privada, base de datos)
+# TD/00063/2020  (Xunta de Galicia)
+# TD/00267/2020  (residencia de mayores)
+# TD/00077/2020  (correo electrónico de antigua empleada)
+# TD/00208/2021  (banco)
