@@ -1,0 +1,129 @@
+{
+  "fecha_entrenamiento": "2026-10-01T21:16:28",
+  "n_casos": 320,
+  "n_train": 240,
+  "n_test": 80,
+  "año_corte_test": 2023,
+  "modelo_elegido": "regresion_logistica",
+  "aceptado": true,
+  "ganancia_f1_sobre_baseline": 0.373,
+  "modelos": {
+    "baseline_clase_mayoritaria": {
+      "cv_f1_macro_media": 0.232,
+      "cv_f1_macro_std": 0.003,
+      "test_f1_macro": 0.222,
+      "hiperparametros": {
+        "clf__strategy": "most_frequent"
+      },
+      "test_auc_ovr": 0.5
+    },
+    "regresion_logistica": {
+      "cv_f1_macro_media": 0.594,
+      "cv_f1_macro_std": 0.059,
+      "test_f1_macro": 0.595,
+      "hiperparametros": {
+        "clf__C": 0.1
+      },
+      "test_auc_ovr": 0.808
+    },
+    "random_forest": {
+      "cv_f1_macro_media": 0.591,
+      "cv_f1_macro_std": 0.052,
+      "test_f1_macro": 0.64,
+      "hiperparametros": {
+        "clf__max_depth": 8,
+        "clf__min_samples_leaf": 3
+      },
+      "test_auc_ovr": 0.794
+    }
+  },
+  "test_informe_por_clase": {
+    "estimada": {
+      "precision": 0.7272727272727273,
+      "recall": 0.6,
+      "f1-score": 0.6575342465753424,
+      "support": 40.0
+    },
+    "estimada_parcialmente": {
+      "precision": 0.375,
+      "recall": 0.75,
+      "f1-score": 0.5,
+      "support": 12.0
+    },
+    "desestimada": {
+      "precision": 0.6956521739130435,
+      "recall": 0.5714285714285714,
+      "f1-score": 0.6274509803921569,
+      "support": 28.0
+    },
+    "accuracy": 0.6125,
+    "macro avg": {
+      "precision": 0.599308300395257,
+      "recall": 0.6404761904761905,
+      "f1-score": 0.5949950756558331,
+      "support": 80.0
+    },
+    "weighted avg": {
+      "precision": 0.6633646245059289,
+      "recall": 0.6125,
+      "f1-score": 0.6233749664249262,
+      "support": 80.0
+    }
+  },
+  "test_matriz_confusion": {
+    "orden": [
+      "estimada",
+      "estimada_parcialmente",
+      "desestimada"
+    ],
+    "valores": [
+      [
+        24,
+        11,
+        5
+      ],
+      [
+        1,
+        9,
+        2
+      ],
+      [
+        8,
+        4,
+        16
+      ]
+    ]
+  },
+  "test_f1_por_franja_antiguedad": {
+    ">10": {
+      "n": 35,
+      "f1_macro": 0.403
+    },
+    "6-10": {
+      "n": 14,
+      "f1_macro": 0.679
+    },
+    "desconocida": {
+      "n": 15,
+      "f1_macro": 0.533
+    },
+    "3-5": {
+      "n": 6,
+      "f1_macro": 0.822
+    },
+    "0-2": {
+      "n": 10,
+      "f1_macro": 0.4
+    }
+  },
+  "importancia_global_shap": {
+    "tipo_responsable": 0.2871630624954131,
+    "antiguedad_info_años": 0.26696787221640955,
+    "tipo_solicitante": 0.22060759071724953,
+    "alega_libertad_informacion": 0.13926545732630052,
+    "tipo_contenido": 0.10164890666885865,
+    "interes_historico": 0.04094669867903111,
+    "condena_penal_previa": 0.03310375521177442,
+    "persona_fallecida": 0.011901668238820115
+  }
+}
